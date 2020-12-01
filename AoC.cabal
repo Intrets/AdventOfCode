@@ -1,0 +1,51 @@
+cabal-version: 1.12
+
+name:           AoC
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/Intrets/AoC#readme>
+homepage:       https://github.com/Intrets/AoC#readme
+bug-reports:    https://github.com/Intrets/AoC/issues
+author:         Intrets 
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/Intrets/AoC
+
+library
+  exposed-modules:
+      AoC2020
+      AoC2020.Day01
+      AoC2020.Day02
+      AoC2020.Day03
+      AoC2020.Day04
+      AoC2020.Day05
+      AoC2020.Day06
+      AoC2020.Day07
+      AoC2020.Day08
+      AoC2020.Day09
+      AoC2020.Day10
+      AoC2020.Day11
+      AoC2020.Day12
+      AoC2020.Day13
+      AoC2020.Day14
+      AoC2020.Day15
+      AoC2020.Day16
+      AoC2020.Day17
+      AoC2020.Day18
+      AoC2020.Day19
+      AoC2020.Day20
+      AoC2020.Day21
+      AoC2020.Day22
+      AoC2020.Day23
+      AoC2020.Day24
+      AoC2020.Day25
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+  default-language: Haskell2010
