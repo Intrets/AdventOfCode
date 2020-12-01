@@ -10,7 +10,7 @@ solution n =
     .   replicateM n
     .   map read
     .   words
-    <$> readFile "Day01.txt"
+    <$> readFile "src/AoC2020/Day01.txt"
 
 main = do
   putStr "part one: " >> solution 2
