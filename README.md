@@ -1,4 +1,4 @@
-# Advent of Code 2020 in Haskell
+# Advent of Code 2020 in Haskell in silly ways
 
 `runhaskell src/AoC2020/Day01.hs`
 
