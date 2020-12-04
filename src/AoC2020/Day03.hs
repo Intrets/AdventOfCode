@@ -4,12 +4,12 @@ import           Data.List
 
 main :: IO ()
 main = do
-  testData <- map cycle . lines <$> readFile "src/AoC2020/Day03.txt"
+  inputData <- map cycle . lines <$> readFile "src/AoC2020/Day03.txt"
 
-  putStr "part one: " >> print (solve testData 3 1)
+  putStr "part one: " >> print (solve inputData 3 1)
 
   putStr "part two: " >> print
-    (product $ map (uncurry $ solve testData)
+    (product $ map (uncurry $ solve inputData)
                    [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)]
     )
 
