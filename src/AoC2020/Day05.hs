@@ -1,5 +1,6 @@
 module AoC2020.Day05 where
 
+import           Data.List
 import           Data.Bits
 import           Control.Applicative
 import           Data.Function
