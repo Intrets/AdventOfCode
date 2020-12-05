@@ -15,15 +15,9 @@ parser1 = sepBy ((,) <$> munch isAlpha <* char ':' <*> munch (not . isSpace))
 
 parser2 :: String -> ReadP Bool
 parser2 = \case
-  "byr" -> do
-    num <- read <$> (count 4 . satisfy $ isDigit)
-    pure (num >= 1920 && num <= 2002)
-  "iyr" -> do
-    num <- read <$> (count 4 . satisfy $ isDigit)
-    pure (num >= 2010 && num <= 2020)
-  "eyr" -> do
-    num <- read <$> (count 4 . satisfy $ isDigit)
-    pure (num >= 2020 && num <= 2030)
+  "byr" -> liftA2 (&&) (>= 1920) (<= 2002) . read <$> munch isDigit
+  "iyr" -> liftA2 (&&) (>= 2010) (<= 2020) . read <$> munch isDigit
+  "eyr" -> liftA2 (&&) (>= 2020) (<= 2030) . read <$> munch isDigit
   "hgt" -> do
     num <- read <$> munch isDigit
     (string "cm" >> pure (num >= 150 && num <= 193))
