@@ -19,5 +19,5 @@ main = do
 
   putStr "part one: " >> print (maximum inputData)
   putStr "part two: " >> print
-    (ap (xor `on` foldl1 xor) (liftA2 enumFromTo minimum maximum) inputData)
+    (foldl1 xor (ap (++) (liftA2 enumFromTo minimum maximum) inputData))
 
