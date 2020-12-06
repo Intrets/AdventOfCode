@@ -4,9 +4,10 @@ import           Text.ParserCombinators.ReadP  as P
 import           Data.Char
 import           Data.List
 import           Control.Applicative
+import           Control.Monad
 
 parser :: ReadP [[String]]
-parser = P.many $ lines <$> manyTill get (string "\n\n")
+parser = P.many $ lines <$> manyTill get (void (string "\n\n") <++ eof)
 
 main :: IO ()
 main = do
