@@ -8,7 +8,6 @@ import           Text.ParserCombinators.ReadP
 import           Control.Arrow
 import           Control.Monad.State           as State
 import           Data.Tuple
-
 import           Data.Char
 
 whileM_ :: (Monad m) => m (Maybe c) -> m b -> m c
@@ -27,14 +26,14 @@ colorP2 = do
   skipSpaces
   bag <- (++) <$> munch1 isLetter <* skipSpaces <*> munch1 isLetter
   if n == 1 then string " bag" else string " bags"
-  return (n, bag)
+  pure (n, bag)
 
 parser1 :: ReadP (String, [(Int, String)])
 parser1 = do
   color <- colorP <* string " bags contain "
   bags  <- sepBy1 colorP2 (string ", ") <++ (string "no other bags" >> pure [])
   char '.'
-  return (color, bags)
+  pure (color, bags)
 
 solve1 :: V.Vector [Int] -> State (S.IntSet, [Int]) Int
 solve1 graph = pred <$> whileM_
@@ -43,9 +42,7 @@ solve1 graph = pred <$> whileM_
     if null q then Just . S.size <$> gets fst else pure Nothing
   )
   (do
-    q <- gets (head . snd)
-    modify (second tail)
-    set <- gets fst
+    (set, q) <- state $ (,) <$> second head <*> second tail
     unless (q `S.member` set) $ modify $ S.insert q *** ((graph V.! q) ++)
   )
 
@@ -83,4 +80,4 @@ main = do
   let graph2 = V.accum (flip (:)) (V.replicate (length colors) []) pairs
 
   putStr "part two: "
-  print . fst . flip runState IM.empty $ solve2 graph2 (toIndex "shinygold") 
+  print . fst . flip runState IM.empty $ solve2 graph2 (toIndex "shinygold")
