@@ -13,8 +13,8 @@ run ops current = do
   if visited
     then pure 0
     else modify (IS.insert current) >> case ops V.!? current of
-      Just ("nop", _) -> run ops (succ current)
-      Just ("acc", i) -> (i +) <$> run ops (succ current)
+      Just ("nop", _) -> run ops (current + 1)
+      Just ("acc", i) -> (i +) <$> run ops (current + 1)
       Just ("jmp", i) -> run ops (current + i)
       Nothing         -> pure 0
 
