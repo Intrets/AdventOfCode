@@ -22,7 +22,7 @@ main :: IO ()
 main = do
   ops <-
     V.fromList
-    .   map ((\[a, b] -> (a, read (filter (/= '+') b) :: Int)) . words)
+    .   map ((\[a, b] -> (a, read (filter (/= '+') b))) . words)
     .   lines
     <$> readFile "src/AoC2020/Day08.txt"
 
