@@ -75,9 +75,9 @@ main = do
           $ pairs
 
   putStr "part one: "
-  print . fst . flip runState (S.empty, [toIndex "shinygold"]) $ solve1 graph1
+  print . flip evalState (S.empty, [toIndex "shinygold"]) $ solve1 graph1
 
   let graph2 = V.accum (flip (:)) (V.replicate (length colors) []) pairs
 
   putStr "part two: "
-  print . fst . flip runState IM.empty $ solve2 graph2 (toIndex "shinygold")
+  print . flip evalState IM.empty $ solve2 graph2 (toIndex "shinygold")
