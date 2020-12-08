@@ -46,7 +46,6 @@ main = do
   let isTarget = (||) <$> (>= length ops) <*> flip
         IS.member
         (IS.fromList . G.reachable (G.transposeG graph) $ length ops)
-  let start = mapMaybe (ops V.!?) $ G.reachable graph 0
   let
     change =
       mapMaybe
