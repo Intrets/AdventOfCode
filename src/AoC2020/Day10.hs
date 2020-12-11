@@ -6,7 +6,7 @@ import           Control.Monad
 import           Data.List
 
 solve2 :: Integer -> Integer -> Integer -> [Int] -> Integer
-solve2 a b c = a `seq` b `seq` c `seq` \case
+solve2 a b c = \case
   (1 : ds) -> solve2 b c (a + b + c) ds
   (2 : ds) -> solve2 c 0 (b + c) ds
   (3 : ds) -> solve2 0 0 c ds
@@ -28,4 +28,6 @@ main = do
 
   putStr "part two: "
   print $ solve2 0 0 1 inputData
+
+  print $ solve2 0 0 1 $ ap (zipWith (flip (-))) tail $  [0..70000]
 
