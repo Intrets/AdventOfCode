@@ -29,5 +29,3 @@ main = do
   putStr "part two: "
   print $ solve2 0 0 1 inputData
 
-  print $ solve2 0 0 1 $ ap (zipWith (flip (-))) tail $  [0..70000]
-

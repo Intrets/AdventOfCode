@@ -61,4 +61,5 @@ library aoc2020
     , containers
     , vector
     , mtl
+    , array
   default-language: Haskell2010
