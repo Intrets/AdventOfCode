@@ -10,11 +10,10 @@ import           Control.Arrow
 import qualified Data.Graph                    as G
 import qualified Data.Vector.Unboxed           as V
 import qualified Data.Array                    as A
-import           Data.List.Split
 import           Data.Function
 
-testList 0 _ = []
-testList n m = testList (n - 1) m ++ [take m [(n - 1) * m ..]]
+numbered 0 _ = []
+numbered n m = numbered (n - 1) m ++ [take m [(n - 1) * m ..]]
 
 main :: IO ()
 main = do
@@ -22,7 +21,7 @@ main = do
 
   let numberedInput = zipWith
         zip
-        (testList (length inputData) (length . head $ inputData))
+        (numbered (length inputData) (length . head $ inputData))
         inputData
 
   let state   = V.fromList . concat $ inputData
@@ -34,43 +33,41 @@ main = do
   let diagonals2 =
         transpose . zipWith ($) (iterate (((-1, '.') :) .) id) $ reverse rows
 
+  let rawPairs = rows ++ columns ++ diagonals1 ++ diagonals2
+
   let pairs1 =
         map (fst *** fst)
-          .  filter (uncurry ((&&) `on` ((/= '.') . snd)))
-          .  concatMap (ap zip tail)
-          $  rows
-          ++ columns
-          ++ diagonals2
-          ++ diagonals1
+          . filter (uncurry ((&&) `on` ((/= '.') . snd)))
+          . concatMap (ap zip tail)
+          $ rawPairs
 
-  let pairs =
+  let pairs2 =
         map (fst *** fst)
-          .  concatMap (ap zip tail . filter ((`elem` "#L") . snd))
-          $  rows
-          ++ columns
-          ++ diagonals2
-          ++ diagonals1
+          . concatMap (ap zip tail . filter ((`elem` "#L") . snd))
+          $ rawPairs
 
+  putStr "part one: "
+  print $ solve 4 pairs1 state
+
+  putStr "part two: "
+  print $ solve 5 pairs2 state
+
+solve :: Int -> [(Int, Int)] -> V.Vector Char -> Int
+solve x pairs state =
   let graph = G.buildG (0, maximum . map (uncurry max) $ pairs)
         $ ap (++) (map swap) pairs
+  in  length
+        . filter (== '#')
+        . fst
+        . head
+        . dropWhile (uncurry (/=))
+        . ap zip tail
+        . map V.toList
+        . iterate (step x graph)
+        $ state
 
-  let graph1 = G.buildG (0, maximum . map (uncurry max) $ pairs)
-        $ ap (++) (map swap) pairs1
-
-  let run   = map V.toList . iterate (step3 5 graph) $ state
-  let diff  = fst . head . dropWhile (uncurry (/=)) . ap zip tail $ run
-
-  let run1  = map V.toList . iterate (step3 4 graph1) $ state
-  let diff1 = fst . head . dropWhile (uncurry (/=)) . ap zip tail $ run1
-
-
-  print $ length . filter (== '#') $ diff1
-  print $ length . filter (== '#') $ diff
-
-  print ""
-
-step3 :: Int -> G.Graph -> V.Vector Char -> V.Vector Char
-step3 x graph state =
+step :: Int -> G.Graph -> V.Vector Char -> V.Vector Char
+step x graph state =
   V.map
       (\case
         (_, '.') -> '.'
@@ -82,5 +79,4 @@ step3 x graph state =
     . V.indexed
     $ state
   where getNeighbours = map (state V.!) . (graph A.!)
-
 
