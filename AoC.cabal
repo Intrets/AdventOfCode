@@ -62,4 +62,5 @@ library aoc2020
     , vector
     , mtl
     , array
+    , split
   default-language: Haskell2010
