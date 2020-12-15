@@ -25,7 +25,7 @@ solve target start = runST $ do
 
 main :: IO ()
 main = do
-  let inputData = map read . splitOn "," $ "5,1,9,18,13,8,0"
+  inputData <- map read . splitOn "," <$> readFile "src/AoC2020/Day15.txt" 
 
   putStr "part two: "
   print $ solve 2020 inputData
