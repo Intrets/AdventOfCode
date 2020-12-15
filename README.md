@@ -1,5 +1,12 @@
 # Advent of Code 2020 in Haskell in silly ways
 
-`runhaskell src/AoC2020/Day01.hs`
+Using stack:
+```
+git clone https://github.com/Intrets/AdventOfCode/
+cd AdventOfCode/
+stack run
+```
 
-`runghc src/AoC2020/Day01.hs`
+To run a specific day, for example day 15:
+
+`stack run 15`
