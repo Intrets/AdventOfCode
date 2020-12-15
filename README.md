@@ -4,6 +4,7 @@ Using stack:
 ```
 git clone https://github.com/Intrets/AdventOfCode/
 cd AdventOfCode/
+stack init
 stack run
 ```
 
