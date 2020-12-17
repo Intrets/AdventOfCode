@@ -59,6 +59,7 @@ library aoc2020
   build-depends:
       base >=4.7 && <5
     , containers
+    , unordered-containers
     , vector
     , mtl
     , array
