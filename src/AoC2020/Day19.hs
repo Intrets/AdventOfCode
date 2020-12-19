@@ -27,7 +27,7 @@ combinedRule = sepBy1 (sepBy1 parseInt (char ' ')) (string " | ")
 makeRule :: M.Map Int (Either String [[Int]]) -> Int -> ReadP ()
 makeRule rules n = case rules M.! n of
   Left  s -> void $ string s
-  Right r -> foldl1 (<|>) . map (void . mapM (makeRule rules)) $ r
+  Right r -> foldl1 (<|>) . map (mapM_ (makeRule rules)) $ r
 
 main :: IO ()
 main = do
