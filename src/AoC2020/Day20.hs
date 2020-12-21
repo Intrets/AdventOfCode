@@ -1,5 +1,4 @@
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE ViewPatterns #-}
 module AoC2020.Day20 where
 
 import           Text.ParserCombinators.ReadP
@@ -14,24 +13,65 @@ import           Control.Monad.State
 import           Data.Maybe
 import qualified Data.Vector.Unboxed           as V
 import           Data.Function
+import           Control.Arrow                  ( (***)
+                                                , first
+                                                )
+import           Data.List.Split
+import qualified Data.Array.Unboxed            as A
+import           Control.Monad.ST.Strict
+import qualified Data.Array.ST                 as AS
 
-reverseBits = (V.!)
+
+reverseBits = V.unsafeIndex
   (    V.replicate 1024 0
-  V.// ( ap (zipWith ((,) `on` foldl1 (\acc e -> acc * 2 + e))) (map reverse)
+  V.// ( ap (zipWith ((,) `on` fromBinary)) (map reverse)
        . replicateM 10
        $ [0, 1]
        )
   )
 
-data Tile = Tile {up :: Int, right :: Int, down :: Int, left :: Int} deriving (Eq, Ord)
+data Tile = Tile {ops :: String, raw :: [String], index :: Int ,up :: Int, right :: Int, down :: Int, left :: Int} deriving (Eq, Ord)
 
 instance Show Tile where
-  show (Tile a b c d) =
-    "Tile (" ++ show a ++ " " ++ show b ++ " " ++ show c ++ " " ++ show d ++ ")"
+  show (Tile o _ i a b c d) =
+    "Tile (index:"
+      ++ show i
+      ++ " ops:"
+      ++ o
+      ++ " "
+      ++ show a
+      ++ " "
+      ++ show b
+      ++ " "
+      ++ show c
+      ++ " "
+      ++ show d
+      ++ ")"
 
-rotateTile (Tile a b c d) = Tile b c d a
-flipTile (Tile a b c d) =
-  Tile (reverseBits c) (reverseBits b) (reverseBits a) (reverseBits d)
+transformRaw ops = transformRaw' (reverse ops)
+
+transformRaw' :: String -> [String] -> [String]
+transformRaw' []           = id
+transformRaw' ('r' : rest) = transformRaw' rest . map reverse . transpose
+transformRaw' ('f' : rest) = transformRaw' rest . map reverse
+
+tileToBinary (Tile _ _ _ a b c d) =
+  [toBinary2 10 a, toBinary2 10 b, toBinary2 10 c, toBinary2 10 d]
+
+showTile tile =
+  let [top, right, bot, left] = tileToBinary tile
+  in  do
+        putStr " " >> putStrLn top
+        let x = zipWith (\a b -> pure a ++ replicate 10 ' ' ++ pure b)
+                        left
+                        right
+        mapM_ putStrLn x
+        putStr " " >> putStrLn bot
+
+rotateTile (Tile ops raw i a b c d) =
+  Tile ('r' : ops) raw i (reverseBits d) a (reverseBits b) c
+flipTile (Tile ops raw i a b c d) =
+  Tile ('f' : ops) raw i (reverseBits a) d (reverseBits c) b
 
 getOrientations tile =
   (take 4 . iterate rotateTile $ tile)
@@ -49,15 +89,15 @@ parser = sepBy1
   (char '\n')
 
 valid :: M.Map (Int, Int) Tile -> (Int, Int) -> Tile -> [Tile]
-valid state (x, y) = filter validTile . getOrientations
- where
-  validTile t = and $ mapMaybe
-    (\(pos, validator) -> ($) validator <$> (state M.!? pos))
-    [ ((x, y + 1), (==) (up t) . down)
-    , ((x, y - 1), (==) (down t) . up)
-    , ((x + 1, y), (==) (right t) . left)
-    , ((x - 1, y), (==) (left t) . right)
-    ]
+valid state (x, y) = filter (validTile (x, y) state) . getOrientations
+
+validTile (x, y) state t = and $ mapMaybe
+  (\(pos, validator) -> ($) validator <$> (state M.!? pos))
+  [ ((x, y + 1), (==) (up t) . down)
+  , ((x, y - 1), (==) (down t) . up)
+  , ((x + 1, y), (==) (right t) . left)
+  , ((x - 1, y), (==) (left t) . right)
+  ]
 
 everyOne :: [a] -> [(a, [a])]
 everyOne a = everyOne' a []
@@ -65,64 +105,158 @@ everyOne a = everyOne' a []
 everyOne' []       _  = []
 everyOne' (a : as) bs = (a, as ++ bs) : everyOne' as (a : bs)
 
-solve
-  :: [Tile]
-  -> [(Int, Int)]
-  -> M.Map (Int, Int) Tile
-  -> Maybe (M.Map (Int, Int) Tile)
-solve _     []             state = Just state
-solve tiles (next : order) state = msum $ map
-  (\(tile, (notPicked++) -> others) ->
-    solve others order (M.insert next tile state)
-  )
-  pairs
- where
-  a                              = map (ap (,) (valid state next)) tiles
-  (picked, map fst -> notPicked) = partition (not . null . snd) a
-  pairs =
-    concatMap (\((_, p), map fst -> ps) -> map (, ps) p) $ everyOne picked
-
 makeOrder n = concatMap
   (\i -> map (\j -> (j, i - j)) [max (i - n + 1) 0 .. (min (n - 1) i)])
   [0 .. 2 * n - 1]
 
-squareToTile :: [String] -> Tile
-squareToTile s = Tile (getNumber up)
-                      (getNumber right)
-                      (getNumber down)
-                      (getNumber left)
+squareToTile :: (Int, [String]) -> Tile
+squareToTile (i, s) = Tile []
+                           s
+                           i
+                           (getNumber up)
+                           (getNumber right)
+                           (getNumber down)
+                           (getNumber left)
  where
-  left  = map head s
-  right = map last s
-  up    = head s
-  down  = last s
-  getNumber =
-    foldl1 (\acc e -> acc * 2 + e) . map (\c -> if c == '#' then 1 else 0)
+  left      = map head s
+  right     = map last s
+  up        = head s
+  down      = last s
+  getNumber = fromBinary . map (\c -> if c == '#' then 1 else 0)
+
+solve
+  :: M.Map (Int, Int) Tile
+  -> [(Int, Int)]
+  -> [Tile]
+  -> Maybe (M.Map (Int, Int) Tile)
+solve state _             []    = Just state
+solve state []            _     = Just state
+solve state (pos : order) tiles = msum
+  $ map (\(t, others) -> solve (M.insert pos t state) order others) valids
+ where
+  possibilities =
+    concatMap (\(t, others) -> map (, others) $ getOrientations t)
+      $ everyOne tiles
+  valids = filter (\(t, others) -> validTile pos state t) possibilities
 
 main :: IO ()
 main = do
   inputData <- fst . head . readP_to_S (parser <* eof) <$> readFile
     "src/AoC2020/Day20.txt"
 
-  let squares = map snd inputData
+  let squares  = map squareToTile inputData
 
-  let edges1  = map head squares
-  let edges2  = map last squares
-  let edges3  = map (map head) squares
-  let edges4  = map (map last) squares
+  let testTile = head squares
 
-  let edges5  = edges1 ++ edges2 ++ edges3 ++ edges4
-  let edges   = edges5 ++ map reverse edges5
+  let order    = 12 
 
-  print $ length . filter (== 1) . map length . group . sort $ edges
+  let Just run = solve M.empty (makeOrder order) $ map squareToTile inputData
 
-  let test = map squareToTile squares
+  let ans =
+        product $ map (index . (run M.!)) [(0, 0), (11, 0), (0, 11), (11, 11)]
 
-  let state :: M.Map (Int, Int) Tile
-      state = M.fromList [((0, -1), Tile 4 4 4 4), ((-1, 0), Tile 3 3 3 3)]
+  putStr "part one: "
+  print ans
 
-  let run = solve test (makeOrder 3) M.empty
+  let canvas =
+        concatMap (foldl1 (zipWith (++)))
+          . transpose
+          . chunksOf order
+          . map
+              ( reverse
+              . (\(Tile ops raw i _ _ _ _) ->
+                  map (init . tail) . init . tail . transformRaw ops $ raw
+                )
+              )
+          . M.elems
+          $ run
 
-  print $ run
+  let canvasArray :: A.Array (Int, Int) Char
+      canvasArray =
+        A.listArray ((0, 0), (8 * order - 1, 8 * order - 1)) . concat $ canvas
 
-  putStrLn "day20"
+  let
+    monster =
+      map fst
+        . filter ((== '#') . snd)
+        . concat
+        . zipWith (\i -> zipWith (\j -> ((i, j), )) [0 ..]) [0 ..]
+--        $["##","##"]
+        $ [ "                  # "
+          , "#    ##    ##    ###"
+          , " #  #  #  #  #  #   "
+          ]
+
+  let monsterChecks = map (\[a, b] -> (a, b))
+        $ sequence [[0 .. 8 * order - 3], [0 .. 8 * order - 20]]
+
+  let aaaa c = checkMonster (8 * order - 1, 8 * order - 1)
+                            (concat c)
+                            monster
+                            monsterChecks
+  let trans = map (`transformRaw` canvas)
+                  ["", "r", "rr", "rrr", "f", "fr", "frr", "frrr"]
+  let bbbb = head . sort $  map aaaa trans
+
+  putStr "part two: "
+  print bbbb
+
+--checkMonster :: (Int, Int) -> String -> [(Int, Int)] -> [(Int, Int)] -> Int
+checkMonster bounds canvas dragon offset = total - dragonSpots
+ where
+  total       = length . filter (/= '.') $ A.elems res
+  dragonSpots = length . filter (== 'x') $ A.elems res
+  res         = AS.runSTUArray $ do
+    state <-
+      AS.newListArray ((0, 0), bounds) canvas :: ST
+        s
+        (AS.STUArray s (Int, Int) Char)
+
+    forM_
+      offset
+      (\(x0, y0) -> do
+        let dragon2 = map (\(x, y) -> (x + x0, y + y0)) dragon
+        aaaaaaa <- notElem '.' <$> forM dragon2 (AS.readArray state)
+        when aaaaaaa $ forM_ dragon2 (\pos -> AS.writeArray state pos 'x')
+      )
+
+    pure state
+
+
+
+fromBinary :: [Int] -> Int
+fromBinary [] = 0
+fromBinary x  = foldl1 (\acc e -> acc * 2 + e) x
+
+toBinary :: Int -> Int -> [Int]
+toBinary pad 0 = replicate pad 0
+toBinary pad n | n `mod` 2 == 0 = toBinary (pad - 1) (n `div` 2) ++ [0]
+               | otherwise      = toBinary (pad - 1) (n `div` 2) ++ [1]
+
+toBinary2 :: Int -> Int -> String
+toBinary2 pad 0 = replicate pad '.'
+toBinary2 pad n | n `mod` 2 == 0 = toBinary2 (pad - 1) (n `div` 2) ++ "."
+                | otherwise      = toBinary2 (pad - 1) (n `div` 2) ++ "#"
+
+applyEnds :: (a -> a) -> ([a] -> [a]) -> [a] -> [a]
+applyEnds f1 f2 l = begin : mid ++ [end] where
+  begin = f1 $ head l
+  mid   = f2 . init $ drop 1 l
+  end   = f1 $ last l
+
+mark :: [String] -> [String]
+mark s = s2 where s2 = applyEnds id (map (applyEnds id (' ' <$))) s
+
+inscribe :: String -> [String] -> [String]
+inscribe i (s1 : s2 : (s : s3) : rest) = s1 : s2 : (s : weirdZip) : rest
+ where
+  digits   = Just ' ' : map Just i ++ repeat Nothing
+  weirdZip = zipWith
+    (\maybeChar c -> case maybeChar of
+      Just c1 -> c1
+      _       -> c
+    )
+    digits
+    s3
+
+
