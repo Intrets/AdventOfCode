@@ -30,24 +30,9 @@ reverseBits = V.unsafeIndex
        )
   )
 
-data Tile = Tile {ops :: String, raw :: [String], index :: Int ,up :: Int, right :: Int, down :: Int, left :: Int} deriving (Eq, Ord)
+data Tile = Tile {ops :: String, raw :: [String], index :: Int, up :: !Int, right :: !Int, down :: !Int, left :: !Int} deriving (Eq, Ord)
 
-instance Show Tile where
-  show (Tile o _ i a b c d) =
-    "Tile (index:"
-      ++ show i
-      ++ " ops:"
-      ++ o
-      ++ " "
-      ++ show a
-      ++ " "
-      ++ show b
-      ++ " "
-      ++ show c
-      ++ " "
-      ++ show d
-      ++ ")"
-
+transformRaw :: String -> [String] -> [String]
 transformRaw ops = transformRaw' (reverse ops)
 
 transformRaw' :: String -> [String] -> [String]
@@ -55,24 +40,12 @@ transformRaw' []           = id
 transformRaw' ('r' : rest) = transformRaw' rest . map reverse . transpose
 transformRaw' ('f' : rest) = transformRaw' rest . map reverse
 
-tileToBinary (Tile _ _ _ a b c d) =
-  [toBinary2 10 a, toBinary2 10 b, toBinary2 10 c, toBinary2 10 d]
-
-showTile tile =
-  let [top, right, bot, left] = tileToBinary tile
-  in  do
-        putStr " " >> putStrLn top
-        let x = zipWith (\a b -> pure a ++ replicate 10 ' ' ++ pure b)
-                        left
-                        right
-        mapM_ putStrLn x
-        putStr " " >> putStrLn bot
-
 rotateTile (Tile ops raw i a b c d) =
   Tile ('r' : ops) raw i (reverseBits d) a (reverseBits b) c
 flipTile (Tile ops raw i a b c d) =
   Tile ('f' : ops) raw i (reverseBits a) d (reverseBits c) b
 
+getOrientations :: Tile -> [Tile]
 getOrientations tile =
   (take 4 . iterate rotateTile $ tile)
     ++ (take 4 . iterate rotateTile . flipTile $ tile)
@@ -88,9 +61,7 @@ parser = sepBy1
   )
   (char '\n')
 
-valid :: M.Map (Int, Int) Tile -> (Int, Int) -> Tile -> [Tile]
-valid state (x, y) = filter (validTile (x, y) state) . getOrientations
-
+validTile :: (Int, Int) -> M.Map (Int, Int) Tile -> Tile -> Bool
 validTile (x, y) state t = and $ mapMaybe
   (\(pos, validator) -> ($) validator <$> (state M.!? pos))
   [ ((x, y + 1), (==) (up t) . down)
@@ -101,10 +72,11 @@ validTile (x, y) state t = and $ mapMaybe
 
 everyOne :: [a] -> [(a, [a])]
 everyOne a = everyOne' a []
+ where
+  everyOne' []       _  = []
+  everyOne' (a : as) bs = (a, as ++ bs) : everyOne' as (a : bs)
 
-everyOne' []       _  = []
-everyOne' (a : as) bs = (a, as ++ bs) : everyOne' as (a : bs)
-
+makeOrder :: Int -> [(Int, Int)]
 makeOrder n = concatMap
   (\i -> map (\j -> (j, i - j)) [max (i - n + 1) 0 .. (min (n - 1) i)])
   [0 .. 2 * n - 1]
@@ -141,20 +113,18 @@ solve state (pos : order) tiles = msum
 
 main :: IO ()
 main = do
-  inputData <- fst . head . readP_to_S (parser <* eof) <$> readFile
-    "src/AoC2020/Day20.txt"
+  inputData <-
+    map squareToTile . fst . head . readP_to_S (parser <* eof) <$> readFile
+      "src/AoC2020/Day20.txt"
 
-  let squares  = map squareToTile inputData
+  let order    = round . sqrt . fromIntegral . length $ inputData
 
-  let testTile = head squares
-
-  let order    = 12 
-
-  let Just run = solve M.empty (makeOrder order) $ map squareToTile inputData
+  let Just run = solve M.empty (makeOrder order) inputData
 
   let ans =
-        product $ map (index . (run M.!)) [(0, 0), (11, 0), (0, 11), (11, 11)]
-
+        product
+          . map (\[a, b] -> fromIntegral . (index . (run M.!)) $ (a, b))
+          $ sequence [[order - 1, 0], [order - 1, 0]]
   putStr "part one: "
   print ans
 
@@ -171,17 +141,12 @@ main = do
           . M.elems
           $ run
 
-  let canvasArray :: A.Array (Int, Int) Char
-      canvasArray =
-        A.listArray ((0, 0), (8 * order - 1, 8 * order - 1)) . concat $ canvas
-
   let
     monster =
       map fst
         . filter ((== '#') . snd)
         . concat
         . zipWith (\i -> zipWith (\j -> ((i, j), )) [0 ..]) [0 ..]
---        $["##","##"]
         $ [ "                  # "
           , "#    ##    ##    ###"
           , " #  #  #  #  #  #   "
@@ -196,67 +161,29 @@ main = do
                             monsterChecks
   let trans = map (`transformRaw` canvas)
                   ["", "r", "rr", "rrr", "f", "fr", "frr", "frrr"]
-  let bbbb = head . sort $  map aaaa trans
+  let bbbb = minimum $ map aaaa trans
 
   putStr "part two: "
   print bbbb
 
---checkMonster :: (Int, Int) -> String -> [(Int, Int)] -> [(Int, Int)] -> Int
+checkMonster :: (Int, Int) -> String -> [(Int, Int)] -> [(Int, Int)] -> Int
 checkMonster bounds canvas dragon offset = total - dragonSpots
  where
   total       = length . filter (/= '.') $ A.elems res
   dragonSpots = length . filter (== 'x') $ A.elems res
   res         = AS.runSTUArray $ do
-    state <-
-      AS.newListArray ((0, 0), bounds) canvas :: ST
-        s
-        (AS.STUArray s (Int, Int) Char)
+    state <- AS.newListArray ((0, 0), bounds) canvas
 
     forM_
       offset
       (\(x0, y0) -> do
         let dragon2 = map (\(x, y) -> (x + x0, y + y0)) dragon
-        aaaaaaa <- notElem '.' <$> forM dragon2 (AS.readArray state)
-        when aaaaaaa $ forM_ dragon2 (\pos -> AS.writeArray state pos 'x')
+        found <- notElem '.' <$> forM dragon2 (AS.readArray state)
+        when found $ forM_ dragon2 (\pos -> AS.writeArray state pos 'x')
       )
-
     pure state
-
-
 
 fromBinary :: [Int] -> Int
 fromBinary [] = 0
 fromBinary x  = foldl1 (\acc e -> acc * 2 + e) x
-
-toBinary :: Int -> Int -> [Int]
-toBinary pad 0 = replicate pad 0
-toBinary pad n | n `mod` 2 == 0 = toBinary (pad - 1) (n `div` 2) ++ [0]
-               | otherwise      = toBinary (pad - 1) (n `div` 2) ++ [1]
-
-toBinary2 :: Int -> Int -> String
-toBinary2 pad 0 = replicate pad '.'
-toBinary2 pad n | n `mod` 2 == 0 = toBinary2 (pad - 1) (n `div` 2) ++ "."
-                | otherwise      = toBinary2 (pad - 1) (n `div` 2) ++ "#"
-
-applyEnds :: (a -> a) -> ([a] -> [a]) -> [a] -> [a]
-applyEnds f1 f2 l = begin : mid ++ [end] where
-  begin = f1 $ head l
-  mid   = f2 . init $ drop 1 l
-  end   = f1 $ last l
-
-mark :: [String] -> [String]
-mark s = s2 where s2 = applyEnds id (map (applyEnds id (' ' <$))) s
-
-inscribe :: String -> [String] -> [String]
-inscribe i (s1 : s2 : (s : s3) : rest) = s1 : s2 : (s : weirdZip) : rest
- where
-  digits   = Just ' ' : map Just i ++ repeat Nothing
-  weirdZip = zipWith
-    (\maybeChar c -> case maybeChar of
-      Just c1 -> c1
-      _       -> c
-    )
-    digits
-    s3
-
 
