@@ -1,0 +1,6 @@
+.*
+!.gitignore
+dist-newstyle/
+hie.yaml
+stack.yaml
+*.lock

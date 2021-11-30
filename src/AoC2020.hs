@@ -28,6 +28,7 @@ import           AoC2020.Day25
 
 import           Text.Read
 import           Data.Maybe
+import           Control.Monad
 
 import           System.Environment
 
@@ -58,15 +59,12 @@ day' 23 = AoC2020.Day23.main
 day' 24 = AoC2020.Day24.main
 day' 25 = AoC2020.Day25.main
 
+readInt :: String -> Maybe Int
+readInt = readMaybe
+
 main :: IO ()
 main = do
-  d <- map readMaybe <$> getArgs
-  case d of
-    (Just n) : _ -> if 1 <= n && n <= 25 then day n else mapM_ day [1 .. 25]
-    _            -> mapM_ day [1 .. 25]
+  days <- filter ((&&) <$> (> 0) <*> (< 26)) . mapMaybe readInt <$> getArgs
 
-
-
-
-
+  if null days then mapM_ day [1 .. 25] else mapM_ day days
 
