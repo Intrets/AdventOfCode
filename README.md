@@ -3,11 +3,20 @@
 Using stack:
 ```
 git clone https://github.com/Intrets/AdventOfCode/
-cd AdventOfCode/
+cd adventofcode/
 stack init
 stack run
 ```
 
-To run a specific day, for example day 15:
+To run every day of every year:
 
-`stack run 15`
+```stack run```
+
+To run all of a specific year:
+
+```stack run 2020```
+
+To run a specific year and specific days:
+
+```stack run 2021 1 2 3 12 20```
+
