@@ -1,9 +1,9 @@
 module AoC2021.Day21 where
 
-inputFile = readFile "Day21.txt"
+inputFile = readFile "src/AoC2021/Day21.txt"
 
 main :: IO ()
 main = do
-  putStrLn "part 1: -"
-  putStrLn "part 2: -"
+  putStr "part 1: " >> print ""
+  putStr "part 2: " >> print ""
 
