@@ -12,22 +12,14 @@ main = do
   parsedInput <- map readInt . lines <$> inputFile
 
   let part1 =
-        length
-          . filter (> 0)
-          . (zipWith (-) <$> tail <*> id)
-          $ parsedInput
+        length . filter (> 0) . (zipWith (-) <$> tail <*> id) $ parsedInput
   putStr "part 1: " >> print part1
 
   paddedInput <- map readInt . lines <$> inputFile
   let part2 =
         length
           . filter (> 0)
-          . (   zipWith4 (\a _ _ d -> a - d)
-            <$> tail . tail . tail
-            <*> tail . tail
-            <*> tail
-            <*> id
-            )
+          . (zipWith (-) <$> tail . tail . tail <*> id)
           $ parsedInput
   putStr "part 2: " >> print part2
 
