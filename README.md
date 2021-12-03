@@ -1,4 +1,4 @@
-# Advent of Code 2020 in Haskell in silly ways
+# Advent of Code in Haskell in silly ways
 
 Using stack:
 ```
