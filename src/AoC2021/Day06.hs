@@ -14,7 +14,7 @@ step (count, age) = [(count, age - 1)]
 main :: IO ()
 main = do
   fishes <-
-    map ((,) <$> length <*> head)
+    map ((,) <$> fromIntegral . length <*> head)
     .   group
     .   sort
     .   map read
