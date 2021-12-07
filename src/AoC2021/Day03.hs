@@ -7,7 +7,7 @@ import           Data.Ord
 
 inputFile = readFile "src/AoC2021/Day03.txt"
 
-fromBinary = foldl (flip (((.) .) ((+) . (* 2))) (read . pure)) 0
+fromBinary = foldl ((. read . pure) . (+) . (* 2)) 0
 
 main :: IO ()
 main = do

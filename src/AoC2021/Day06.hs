@@ -7,11 +7,13 @@ import           Data.Bool
 import           Data.Function
 import           Control.Monad
 
+(.:) = (.) . (.)
+infixr 8 .:
+
 inputFile = readFile "src/AoC2021/Day06.txt"
 
 step (count, 0  ) = [(count, 6), (count, 8)]
 step (count, age) = [(count, age - 1)]
-
 
 main :: IO ()
 main = do
@@ -49,7 +51,7 @@ main = do
           . concat
           . (!! day)
           . iterate
-              (ap ((map tail .) . flip (map . flip (++) . pure))
+              (ap (map tail .: flip (map . flip (++) . pure))
                   (sum . head . transpose)
               )
           . (: [replicate 9 0])

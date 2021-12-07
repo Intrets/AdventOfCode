@@ -10,13 +10,13 @@ main = do
   parsedInput <- map read . lines <$> inputFile
 
   let part1 =
-        length . filter (> 0) . (zipWith (-) <$> tail <*> id) $ parsedInput
+        length . filter (< 0) . (zipWith (-) <*> tail) $ parsedInput
   putStr "part 1: " >> print part1
 
   let part2 =
         length
-          . filter (> 0)
-          . (zipWith (-) <$> tail . tail . tail <*> id)
+          . filter (< 0)
+          . (zipWith (-) <*> tail . tail . tail)
           $ parsedInput
   putStr "part 2: " >> print part2
 
