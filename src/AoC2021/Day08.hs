@@ -10,6 +10,7 @@ import           Data.Set                       ( intersection
                                                 , (\\)
                                                 , size
                                                 , union
+                                                , isSubsetOf
                                                 )
 import qualified Data.Set                      as S
 import           Control.Arrow
@@ -28,7 +29,7 @@ lengthMatch :: Int -> State (S.Set Digit) Digit
 lengthMatch n = state $ extract ((== n) . size)
 
 match :: Digit -> State (S.Set Digit) Digit
-match str = state $ extract ((== str) . intersection str)
+match str = state $ extract (str `isSubsetOf`)
 
 getDecodeMap :: S.Set Digit -> M.Map Digit Int
 getDecodeMap = evalState $ do
@@ -65,17 +66,19 @@ solvePart2 digits =
 main :: IO ()
 main = do
 
-  outputs1 <- map (last . splitOn ["|"] . words) . lines <$> inputFile
-
-  let part1 =
-        length . filter (`elem` [2, 3, 4, 7]) . map length . concat $ outputs1
+  part1 <-
+    length
+    .   filter (`elem` [2, 3, 4, 7])
+    .   map length
+    .   concatMap (last . splitOn ["|"] . words)
+    .   lines
+    <$> inputFile
 
   part2 <-
     sum
     .   map (solvePart2 . (map S.fromList . filter (/= "|") . words))
     .   lines
     <$> inputFile
-
 
   putStr "part 1: " >> print part1
   putStr "part 2: " >> print part2
