@@ -65,7 +65,6 @@ solvePart2 digits =
 
 main :: IO ()
 main = do
-
   part1 <-
     length
     .   filter (`elem` [2, 3, 4, 7])
