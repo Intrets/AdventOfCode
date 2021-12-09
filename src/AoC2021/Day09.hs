@@ -8,29 +8,27 @@ import           Control.Arrow
 
 inputFile = readFile "src/AoC2021/Day09.txt"
 
-floodFill
-  :: ((Int, Int) -> Int) -> (Int, Int) -> State (M.Map (Int, Int) Bool) Int
-floodFill getHeight point = do
-  visited <- gets (M.! point)
-  if (getHeight point == 9) || visited
-    then return 0
-    else do
-      modify (M.insert point True)
-      succ . sum <$> mapM (floodFill getHeight . ($point))
+floodFill :: (Int, Int) -> State (M.Map (Int, Int) Int) Int
+floodFill point = do
+  s <- gets (M.lookup point)
+  case s of
+    Nothing -> return 0
+    Just 9  -> return 0
+    Just _  -> do
+      modify (M.delete point)
+      succ . sum <$> mapM (floodFill . ($point))
                           [first succ, first pred, second succ, second pred]
 
-getBasinSizes
-  :: [(Int, Int)] -> ((Int, Int) -> Int) -> State (M.Map (Int, Int) Bool) [Int]
-getBasinSizes points getHeight =
-  filter (> 0) <$> mapM (floodFill getHeight) points
+getBasinSizes :: [(Int, Int)] -> State (M.Map (Int, Int) Int) [Int]
+getBasinSizes points = filter (> 0) <$> mapM floodFill points
 
 main :: IO ()
 main = do
-  part1 <- map (map ((read :: String -> Int) . pure)) . lines <$> inputFile
+  unpadded <- map (map (read . pure)) . lines <$> inputFile
 
   let edge      = 9
 
-  let padded1 = map ((++ [edge]) . ([edge] ++)) part1
+  let padded1 = map ((++ [edge]) . ([edge] ++)) unpadded
   let height    = length . head $ padded1
   let padded2 = [replicate height edge] ++ padded1 ++ [replicate height edge]
   let width     = length padded2
@@ -46,12 +44,10 @@ main = do
         sum . map (succ . fst) . filter (uncurry (all . (<))) $ neighbours
 
   let points    = (,) <$> [0 .. width - 1] <*> [0 .. height - 1]
-  let heightMap = zip points flattened
-  let getHeight = (M.!) (M.fromList heightMap)
-  let visited   = M.fromList $ zip points (repeat False)
+  let heightMap = M.fromList $ zip points flattened
   let part2 = product . take 3 . sortOn negate $ evalState
-        (getBasinSizes points getHeight)
-        visited
+        (getBasinSizes points)
+        heightMap
 
   putStr "part 1: " >> print part1
   putStr "part 2: " >> print part2
