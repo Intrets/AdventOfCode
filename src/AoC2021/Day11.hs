@@ -4,7 +4,7 @@ import           Data.List
 import           Control.Monad
 import           Data.List.Split
 import           Data.Bifunctor
-import           Control.Monad.ST.Lazy
+import           Control.Monad.ST
 import qualified Data.Array.ST                 as STA
 
 whileM :: Monad m => (a -> Bool) -> m a -> m [a]
