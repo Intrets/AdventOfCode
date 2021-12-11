@@ -7,7 +7,7 @@ import           Data.List               hiding ( union
                                                 )
 import qualified Data.Map                      as M
 import           Data.Set                       ( intersection
-                                                , (\\)
+                                                , difference 
                                                 , size
                                                 , union
                                                 , isSubsetOf
@@ -41,13 +41,13 @@ getDecodeMap = evalState $ do
   let ninePart = four `union` seven
   nine <- match ninePart
 
-  let sixPart = eight \\ seven
+  let sixPart = eight `difference` seven
   six <- match sixPart
 
-  let zeroPart = (six \\ four) `union` seven
+  let zeroPart = (six `difference` four) `union` seven
   zero <- match zeroPart
 
-  let twoPart = six \\ four
+  let twoPart = six `difference` four
   two   <- match twoPart
 
   three <- match seven
