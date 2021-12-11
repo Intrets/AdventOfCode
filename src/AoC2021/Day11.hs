@@ -32,11 +32,12 @@ solve squid = runST $ do
             (tail $ bimap <$> [id, succ, pred] <*> [id, succ, pred])
           else return 0
 
-  whileM (/= (width - 2) * (height - 2)) $ do
-    total <- sum
-      <$> forM ((,) <$> [0 .. width - 1] <*> [0 .. height - 1]) (flood array)
+  let gridPoints = (,) <$> [1 .. width - 2] <*> [1 .. height - 2]
 
-    forM_ ((,) <$> [1 .. width - 2] <*> [1 .. height - 2]) $ \i -> do
+  whileM (/= (width - 2) * (height - 2)) $ do
+    total <- sum <$> forM gridPoints (flood array)
+
+    forM_ gridPoints $ \i -> do
       e <- STA.readArray array i
       when (e > 9) $ STA.writeArray array i 0
 
@@ -44,17 +45,12 @@ solve squid = runST $ do
 
 main :: IO ()
 main = do
-  squid <-
-    map ((++ [minBound]) . ([minBound] ++) . map (read . pure))
-    .   lines
-    <$> inputFile
-  let width = length . head $ squid
-  let paddedSquid =
-        [replicate width minBound] ++ squid ++ [replicate width minBound]
-  let height = length paddedSquid
+  let pad = map ((++ [minBound]) . ([minBound] ++))
+  squid <- map (map (read . pure)) . lines <$> inputFile
+  let paddedSquid = transpose . pad . transpose . pad $ squid
 
-  let part1  = sum . take 100 . solve $ paddedSquid
-  let part2  = length . solve $ paddedSquid
+  let part1       = sum . take 100 . solve $ paddedSquid
+  let part2       = length . solve $ paddedSquid
 
 
   putStr "part 1: " >> print part1
