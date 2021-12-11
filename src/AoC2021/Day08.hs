@@ -3,7 +3,6 @@ module AoC2021.Day08 where
 import           Data.List.Split
 import           Control.Monad.State
 import           Data.List               hiding ( union
-                                                , (\\)
                                                 )
 import qualified Data.Map                      as M
 import           Data.Set                       ( intersection
