@@ -37,10 +37,10 @@ popVisit = do
 solve :: Bool -> (Cave -> [Cave]) -> Int
 solve bypass getNeighbours = evalState (search bypass (Small "start")) emptyS
  where
-  search _      (Small "end") = return 1
-  search bypass cave          = do
+  search bypass cave = do
     visited <- isVisited cave
     if
+      | cave == Small "end" -> return 1
       | visited && (cave == Small "start" || not bypass) -> return 0
       | not visited -> do
         visit cave
