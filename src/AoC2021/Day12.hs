@@ -16,9 +16,6 @@ inputFile = readFile "src/AoC2021/Day12.txt"
 
 data Cave = Small String | Large String deriving (Ord, Eq, Show, Read)
 
-start = Small "start"
-end = Small "end"
-
 isSmall (Small _) = True
 isSmall _         = False
 
@@ -31,30 +28,26 @@ isVisited cave = (isSmall cave &&) <$> gets (S.member cave . snd)
 visit :: Cave -> S ()
 visit cave = modify $ bimap (cave :) (S.insert cave)
 
-pop :: S ()
-pop = do
+popVisit :: S ()
+popVisit = do
   top <- gets (head . fst)
   modify $ first tail
   modify $ second (S.delete top)
 
-
-solve :: (Cave -> [Cave]) -> State ([Cave], S.Set Cave) Int
-solve getNeighbours = do
-
-  let search _      (Small "end") = return 1
-      search bypass cave          = do
-        visited <- isVisited cave
-        if
-          | visited && (cave == start || not bypass) -> return 0
-          | not visited -> do
-            visit cave
-            res <- sum <$> mapM (search bypass) (getNeighbours cave)
-            pop
-            return res
-          | otherwise -> sum <$> mapM (search False) (getNeighbours cave)
-
-  search True start
-
+solve :: Bool -> (Cave -> [Cave]) -> Int
+solve bypass getNeighbours = evalState (search bypass (Small "start")) emptyS
+ where
+  search _      (Small "end") = return 1
+  search bypass cave          = do
+    visited <- isVisited cave
+    if
+      | visited && (cave == Small "start" || not bypass) -> return 0
+      | not visited -> do
+        visit cave
+        total <- sum <$> mapM (search bypass) (getNeighbours cave)
+        popVisit
+        return total
+      | otherwise -> sum <$> mapM (search False) (getNeighbours cave)
 
 main :: IO ()
 main = do
@@ -70,12 +63,6 @@ main = do
     .   lines
     <$> inputFile
 
-  let part1 = runState (solve graph) emptyS
-
-  print part1
-
-  -- print graph
-
-  putStr "part 1: " >> print ""
-  putStr "part 2: " >> print ""
+  putStr "part 1: " >> print (solve False graph)
+  putStr "part 2: " >> print (solve True graph)
 
