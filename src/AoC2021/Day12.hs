@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 module AoC2021.Day12 where
 
 import           Data.List.Split
@@ -40,19 +41,19 @@ pop = do
 solve :: (Cave -> [Cave]) -> State ([Cave], S.Set Cave) Int
 solve getNeighbours = do
 
-  let search (Small "end") = return 1
-      search cave          = do
+  let search _      (Small "end") = return 1
+      search bypass cave          = do
         visited <- isVisited cave
-        if visited
-          then return 0
-          else do
+        if
+          | visited && (cave == start || not bypass) -> return 0
+          | not visited -> do
             visit cave
-            let neighbours = getNeighbours cave
-            res <- sum <$> mapM search neighbours
+            res <- sum <$> mapM (search bypass) (getNeighbours cave)
             pop
             return res
+          | otherwise -> sum <$> mapM (search False) (getNeighbours cave)
 
-  search start
+  search True start
 
 
 main :: IO ()
