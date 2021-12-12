@@ -31,8 +31,7 @@ visit cave = modify $ bimap (cave :) (S.insert cave)
 popVisit :: S ()
 popVisit = do
   top <- gets (head . fst)
-  modify $ first tail
-  modify $ second (S.delete top)
+  modify $ bimap tail (S.delete top)
 
 solve :: Bool -> (Cave -> [Cave]) -> Int
 solve bypass getNeighbours = evalState (search bypass (Small "start")) emptyS
