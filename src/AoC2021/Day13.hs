@@ -39,5 +39,5 @@ main = do
 
   forM_ [0 .. 5] $ \y -> do
     forM_ [0 .. 38]
-      $ \x -> if (x, y) `S.member` pointSet then putStr "@" else putStr " "
+      $ \x -> if (x, y) `S.member` pointSet then putStr "@@" else putStr "  "
     putStrLn ""
