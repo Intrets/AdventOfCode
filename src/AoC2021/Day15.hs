@@ -10,6 +10,9 @@ import           Data.Ord
 import qualified Data.Heap                     as H
 import           Data.List.Split
 import           Data.STRef.Strict
+import           Control.Monad.ST.Strict
+import qualified Data.Array.ST                 as STA
+import qualified Data.Array.Unboxed            as A
 
 inputFile = readFile "src/AoC2021/Day15.txt"
 
@@ -18,78 +21,63 @@ whileM_ f a = do
   b <- f
   when b $ a >> whileM_ f a
 
-pop :: S (Vec2, Integer)
-pop = do
-  Just (H.Entry v k, m) <- gets $ H.viewMin . tfst
-  modify $ tfirst $ const m
-  return (k, v)
---   modify $ first $ const m
---   return k
+type Vec2 = (Int, Int)
 
--- shift :: Vec2 -> S ()
--- shift v = do
---   value <- gets $ (M.! v) . fst
---   modify $ bimap (M.delete v) (M.insert v value)
+solveST :: (Int, Int) -> (Vec2 -> Int) -> A.UArray (Int, Int) Int
+solveST (width, height) getWeight = STA.runSTUArray $ do
+  visited <-
+    STA.newArray ((-1, -1), (width, height)) False :: ST
+      s
+      (STA.STUArray s (Int, Int) Bool)
 
-type Vec2 = (Integer, Integer)
-data Triple = Triple {
-  tfst :: !(H.Heap (H.Entry Integer Vec2)),
-  tsnd :: !(S.Set Vec2),
-  tthd :: !(M.HashMap Vec2 Integer)
-} deriving (Show)
+  let edges =
+        zip (repeat (-1)) [-1 .. height]
+          ++ zip (repeat width) [-1 .. height]
+          ++ zip [-1 .. width]  (repeat (-1))
+          ++ zip [-1 .. width]  (repeat height)
 
-tfirst f (Triple a b c) = Triple (f a) b c
-tsecond f (Triple a b c) = Triple a (f b) c
-tthird f (Triple a b c) = Triple a b (f c)
+  forM_ edges $ flip (STA.writeArray visited) True
 
-type S a = State Triple a
+  distances <-
+    STA.newArray ((0, 0), (width - 1, height - 1)) maxBound :: ST
+      s
+      (STA.STUArray s (Int, Int) Int)
+  STA.writeArray distances (0, 0) 0
 
-solve :: (Vec2 -> Maybe Integer) -> S ()
-solve getWeight = do
-  whileM_ (gets $ not . H.null . tfst) $ do
-    Just (H.Entry value point, m) <- gets $ H.viewMin . tfst
-    modify $ tfirst $ const m
+  front <- newSTRef (S.singleton (0, (0, 0)) :: S.Set (Int, (Int, Int)))
 
-    unvisited <- gets $ S.member point . tsnd
+  whileM_ (not . S.null <$> readSTRef front) $ do
+    ((value, point), s) <- S.deleteFindMin <$> readSTRef front
+    writeSTRef front s
 
-    when unvisited $ do
+    pointVisited <- STA.readArray visited point
+
+    unless pointVisited $ do
+      STA.writeArray visited point True
       let neighbours = map ($point) ([first, second] <*> [succ, pred])
 
-      forM_ neighbours $ \v -> do
-        unvisited <- gets $ S.member v . tsnd
-        when unvisited $ case getWeight v of
-          Just weight -> do
-            let newValue = value + weight
-            let action   = M.insertWith min v newValue
-            modify $ tthird action
-            modify $ tfirst $ H.insert $ H.Entry newValue v
-          Nothing -> return ()
-      modify $ tsecond $ S.delete point
-    --modify $ bimap (M.delete point) (M.insert point value)
+      forM_ neighbours $ \p -> do
+        pVisited <- STA.readArray visited p
+        unless pVisited $ do
+          v <- STA.readArray distances p
+          let newValue = min v (value + getWeight p)
+          modifySTRef' front $ S.insert (newValue, p)
+          STA.writeArray distances p newValue
 
-  return ()
+  return distances
+
 
 main :: IO ()
 main = do
   weights <- map (map (read . pure)) . lines <$> inputFile
-  -- let weights = replicate 2 weights_
-  let width  = fromIntegral . length . head $ weights
-  let height = fromIntegral . length $ weights
-
-  print (width, height)
+  let width  = length . head $ weights
+  let height = length weights
 
   let points    = (,) <$> [0 .. width - 1] <*> [0 .. height - 1]
 
-  let getWeight = flip M.lookup . M.fromList $ zip points (concat weights)
+  let getWeight = (M.!) . M.fromList $ zip points (concat weights)
 
-  let unvisited = S.fromList points
-
-  let part1 = tthd . execState (solve getWeight) $ Triple
-        (H.singleton (H.Entry 0 (0, 0)))
-        unvisited
-        M.empty
-
-  let pairs = zip points (concat weights)
+  let pairs     = zip points (concat weights)
   let part2Weights =
         concatMap
             (\(x, y) -> map
@@ -102,19 +90,12 @@ main = do
           <$> [0 .. 4]
           <*> [0 .. 4]
 
-  let getWeight2 = flip M.lookup . M.fromList $ part2Weights
+  let getWeight2 = (M.!) . M.fromList $ part2Weights
 
-  let points2 = (,) <$> [0 .. width * 5 - 1] <*> [0 .. height * 5 - 1]
-  let unvisited2 = S.fromList points2
-  let part2 = tthd $ execState (solve getWeight2) $ Triple
-        (H.singleton (H.Entry 0 (0, 0)))
-        unvisited2
-        M.empty
+  let part1      = solveST (width, height) getWeight
+  let part2      = solveST (width * 5, height * 5) getWeight2
 
-  -- print part2Weights
-
-  putStr "part 1: " >> print (part1 M.! (width - 1, height - 1))
---   print part1
-  putStr "part 2: " >> print (part2 M.! (width * 5 - 1, height * 5 - 1))
+  putStr "part 1: " >> print (part1 A.! (width - 1, height - 1))
+  putStr "part 2: " >> print (part2 A.! (width * 5 - 1, height * 5 - 1))
 
 
