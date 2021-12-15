@@ -13,6 +13,7 @@ import           Data.STRef.Strict
 import           Control.Monad.ST.Strict
 import qualified Data.Array.ST                 as STA
 import qualified Data.Array.Unboxed            as A
+import qualified Data.Array                    as AR
 
 inputFile = readFile "src/AoC2021/Day15.txt"
 
@@ -73,11 +74,12 @@ main = do
   let width  = length . head $ weights
   let height = length weights
 
-  let points    = (,) <$> [0 .. width - 1] <*> [0 .. height - 1]
+  let points = (,) <$> [0 .. width - 1] <*> [0 .. height - 1]
+  let pairs  = zip points (concat weights)
 
-  let getWeight = (M.!) . M.fromList $ zip points (concat weights)
+  let getWeight1 =
+        (AR.!) $ AR.accumArray (+) 0 ((0, 0), (width - 1, height - 1)) pairs
 
-  let pairs     = zip points (concat weights)
   let part2Weights =
         concatMap
             (\(x, y) -> map
@@ -90,10 +92,15 @@ main = do
           <$> [0 .. 4]
           <*> [0 .. 4]
 
-  let getWeight2 = (M.!) . M.fromList $ part2Weights
+  let getWeight2 = (AR.!) $ AR.accumArray
+        (+)
+        0
+        ((0, 0), (width * 5 - 1, height * 5 - 1))
+        part2Weights
 
-  let part1      = solveST (width, height) getWeight
-  let part2      = solveST (width * 5, height * 5) getWeight2
+
+  let part1 = solveST (width, height) getWeight1
+  let part2 = solveST (width * 5, height * 5) getWeight2
 
   putStr "part 1: " >> print (part1 A.! (width - 1, height - 1))
   putStr "part 2: " >> print (part2 A.! (width * 5 - 1, height * 5 - 1))
