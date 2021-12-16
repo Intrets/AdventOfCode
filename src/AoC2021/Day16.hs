@@ -13,74 +13,57 @@ inputFile = readFile "src/AoC2021/Day16.txt"
 readBinary :: String -> Integer
 readBinary = foldl ((. fromIntegral . digitToInt) . (+) . (* 2)) 0
 
+readBits bits = readBinary <$> count bits get
+
 data Operator = Literal {
   version :: Integer,
   value :: Integer
-} | Operator {
+} | Other {
   version :: Integer,
   id :: Integer,
   sub :: [Operator]
 } deriving (Show)
 
-
-opprint = pprint 0
- where
-  pprint :: Int -> Operator -> IO ()
-  pprint level (Literal _ value) =
-    putStr (replicate (2 * level) ' ') >> putStrLn ("Literal " ++ show value)
-  pprint level (Operator version id sub) = do
-    putStr (replicate (2 * level) ' ')
-    putStrLn $ "Operator " ++ op ++ " {"
-    mapM_ (pprint $ level + 1) sub
-    putStr (replicate (2 * level) ' ')
-    putStrLn "}"
-   where
-    op = case id of
-      0 -> "sum"
-      1 -> "prod"
-      2 -> "min"
-      3 -> "max"
-      5 -> "gt"
-      6 -> "lt"
-      7 -> "eq"
+getVersion (Literal v _) = v
+getVersion (Other v _ _) = v
 
 foldOp :: (a -> Operator -> a) -> a -> Operator -> a
-foldOp f a li@Literal{}          = f a li
-foldOp f a op@(Operator _ _ sub) = foldl (foldOp f) (f a op) sub
+foldOp f a li@Literal{}       = f a li
+foldOp f a op@(Other _ _ sub) = foldl (foldOp f) (f a op) sub
 
 eval :: Operator -> Integer
 eval (Literal _ v) = v
-eval (Operator _ id vs) =
+eval (Other _ id vs) =
   let op = case id of
         0 -> sum
         1 -> product
         2 -> minimum
         3 -> maximum
-        5 -> \[a, b] -> bool 0 1 (a > b)
-        6 -> \[a, b] -> bool 0 1 (a < b)
-        7 -> \[a, b] -> bool 0 1 (a == b)
+        5 -> \[a, b] -> if a > b then 1 else 0
+        6 -> \[a, b] -> if a < b then 1 else 0
+        7 -> \[a, b] -> if a == b then 1 else 0
   in  op $ map eval vs
 
 parsePacket :: ReadP Operator
 parsePacket = do
-  version <- readBinary <$> count 3 get
-  id      <- readBinary <$> count 3 get
+  version <- readBits 3
+  id      <- readBits 3
   case id of
     4 -> do
       lead <- many (char '1' >> count 4 get)
       end  <- char '0' >> count 4 get
-      return $ Literal version $ readBinary $ concat lead ++ end
+      return $ Literal version (readBinary $ concat lead ++ end)
     _ -> do
-      lengthTypeID <- readBinary <$> count 1 get
+      lengthTypeID <- readBits 1
       subPackets   <- case lengthTypeID of
         0 -> do
-          bitLength <- readBinary <$> count 15 get
+          bitLength <- readBits 15
           bits      <- count (fromInteger bitLength) get
           return $ fst . last . readP_to_S (many parsePacket) $ bits
         1 -> do
-          packets <- readBinary <$> count 11 get
+          packets <- readBits 11
           count (fromInteger packets) parsePacket
-      return $ Operator version id subPackets
+      return $ Other version id subPackets
 
 main :: IO ()
 main = do
@@ -91,16 +74,8 @@ main = do
   decoded <- concatMap decode . takeWhile isAlphaNum <$> inputFile
 
   let ops = fst . last . readP_to_S parsePacket $ decoded
-  let part1 = foldOp
-        (\acc e -> case e of
-          Literal version _    -> version + acc
-          Operator version _ _ -> version + acc
-        )
-        0
-        ops
+  let part1 = foldOp ((. getVersion) . (+)) 0 ops
   let part2 = eval ops
-
-  -- opprint ops
 
   putStr "part 1: " >> print part1
   putStr "part 2: " >> print part2
