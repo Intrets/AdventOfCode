@@ -67,9 +67,8 @@ parsePacket = do
 
 main :: IO ()
 main = do
-  let decode = (M.!) . M.fromList $ zip
-        (map intToDigit [0 .. 9] ++ ['A' .. 'F'])
-        (replicateM 4 ['0', '1'])
+  let decode = (M.!) . M.fromList $ zip (['0' .. '9'] ++ ['A' .. 'F'])
+                                        (replicateM 4 ['0', '1'])
 
   decoded <- concatMap decode . takeWhile isAlphaNum <$> inputFile
 
