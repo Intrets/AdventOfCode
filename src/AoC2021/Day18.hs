@@ -152,8 +152,7 @@ main :: IO ()
 main = do
   numbers <- map (fst . head . readP_to_S (parse <* eof)) . lines <$> inputFile
 
-  let part1 = foldl1 (\acc e -> solve $ Pair acc e) numbers
-  print $ magnitude part1
+  let part1 = magnitude $  foldl1 (\acc e -> solve $ Pair acc e) numbers
 
   let part2 =
         maximum $ [ magnitude . solve $ Pair x y | x <- numbers, y <- numbers, x /= y ]
