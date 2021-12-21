@@ -24,7 +24,6 @@ main = do
   let part1Board = pad 4 seed
 
   let group3 = map (zipWith3 (\a b c -> [a, b, c]) <*> tail <*> tail . tail)
-
   let groupNeighbours =
         map (map concat) . transpose . group3 . transpose . group3
 
